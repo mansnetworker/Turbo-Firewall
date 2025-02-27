@@ -97,18 +97,12 @@ uninstall_firewall() {
         ufw delete allow $PORT/udp
     done
 
-    BLOCKED_IPS=("10.0.0.0/8" "100.64.0.0/10" "172.16.0.0/12" "198.18.0.0/15" "169.254.0.0/16" "141.101.78.0/23" "173.245.48.0/20" "18.208.0.0/16" "200.0.0.0/8" "102.0.0.0/8")
-    for IP in "${BLOCKED_IPS[@]}"; do
-        ufw delete deny out to $IP
-    done
-
     echo "🔹 Flushing iptables rules..."
     iptables -F
     iptables -X
     iptables -Z
     iptables -t nat -F
 
-    echo "🔹 Resetting iptables policies to default..."
     iptables -P INPUT ACCEPT
     iptables -P FORWARD ACCEPT
     iptables -P OUTPUT ACCEPT
@@ -116,6 +110,9 @@ uninstall_firewall() {
     echo "🔹 Deleting saved iptables rules..."
     rm -f /etc/iptables/rules.v4
     rm -f /etc/iptables/rules.v6
+
+    echo "🔹 Resetting UFW..."
+    ufw --force reset
 
     echo "✅ All default Turbo Firewall rules have been removed!"
 }
