@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # لینک گیت‌هاب ریپازیتوری
-REPO_URL="https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPOSITORY"
+REPO_URL="https://raw.githubusercontent.com/mansnetworker/Turbo-Firewall/refs/heads/main/turbo-firewall.sh"
 
 show_logo() {
     echo "=========================================="
