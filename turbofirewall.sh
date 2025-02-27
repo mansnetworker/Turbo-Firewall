@@ -10,6 +10,8 @@ show_logo() {
 install_firewall() {
     echo "Installing Turbo Firewall rules..."
 
+    apt update && apt upgrade -y
+
     read -p "Please enter your SSH port: " SSH_PORT
 
     if [[ $SSH_PORT -ne 22 ]]; then
