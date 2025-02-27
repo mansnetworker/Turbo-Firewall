@@ -10,6 +10,19 @@ show_logo() {
 install_firewall() {
     echo "Installing Turbo Firewall rules..."
 
+    read -p "Please enter your SSH port: " SSH_PORT
+
+    if [[ $SSH_PORT -ne 22 ]]; then
+        echo "You have entered a custom SSH port: $SSH_PORT"
+        echo "Please ensure that your SSH service is running on this port before proceeding."
+        echo "We will now open port $SSH_PORT for you."
+    else
+        echo "You have selected the default SSH port (22)."
+    fi
+
+    ufw allow $SSH_PORT/tcp
+    echo "✅ SSH port $SSH_PORT (TCP) has been allowed."
+
     echo "🔹 Enabling and configuring UFW..."
     ufw --force enable
 
@@ -21,7 +34,7 @@ install_firewall() {
 
     BLOCKED_IPS=("10.0.0.0/8" "100.64.0.0/10" "172.16.0.0/12" "198.18.0.0/15" "169.254.0.0/16" "141.101.78.0/23" "173.245.48.0/20" "18.208.0.0/16" "200.0.0.0/8" "102.0.0.0/8")
     for IP in "${BLOCKED_IPS[@]}"; do
-        ufw deny out to $IP  # فقط مسدود کردن ترافیک خروجی
+        ufw deny out to $IP
     done
 
     echo "🔹 Installing iptables-persistent..."
@@ -76,7 +89,7 @@ allow_port() {
 }
 
 uninstall_firewall() {
-    echo "Removing all Turbo Firewall rules..."
+    echo "Removing default Turbo Firewall rules..."
 
     PORTS=(80 8080 8880 2052 2082 2086 2095 443 8443 2053 2083 2087 2096)
     for PORT in "${PORTS[@]}"; do
@@ -104,7 +117,12 @@ uninstall_firewall() {
     rm -f /etc/iptables/rules.v4
     rm -f /etc/iptables/rules.v6
 
-    echo "✅ All Turbo Firewall rules have been removed!"
+    echo "✅ All default Turbo Firewall rules have been removed!"
+}
+
+status() {
+    echo "🔹 Showing current iptables rules and status..."
+    iptables -L -v -n
 }
 
 show_menu() {
@@ -112,7 +130,8 @@ show_menu() {
     echo "1) Install Turbo Firewall"
     echo "2) Allow Port"
     echo "3) Uninstall Turbo Firewall (Remove all rules)"
-    echo "4) Exit"
+    echo "4) View Status (Blocked Packets)"
+    echo "5) Exit"
     echo ""
     read -p "Choose an option: " OPTION
 
@@ -120,8 +139,9 @@ show_menu() {
         1) install_firewall ;;
         2) allow_port ;;
         3) uninstall_firewall ;;
-        4) exit 0 ;;
-        *) echo "Invalid option. Please choose between 1-4."; sleep 2; show_menu ;;
+        4) status ;;
+        5) exit 0 ;;
+        *) echo "Invalid option. Please choose between 1-5."; sleep 2; show_menu ;;
     esac
 }
 
