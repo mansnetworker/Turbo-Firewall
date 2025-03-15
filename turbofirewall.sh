@@ -9,7 +9,6 @@ show_logo() {
 
 install_firewall() {
     echo "Installing Turbo Firewall rules..."
-
     apt update && apt upgrade -y
 
     read -p "Please enter your SSH port: " SSH_PORT
@@ -28,11 +27,13 @@ install_firewall() {
     echo "🔹 Enabling and configuring UFW..."
     ufw --force enable
 
-    PORTS=(80 8080 8880 2052 2082 2086 2095 443 8443 2053 2083 2087 2096)
+    PORTS=(80 8080 8880 2052 2082 2086 2095 443 8443 2053 2083 2087 2096 54321)
     for PORT in "${PORTS[@]}"; do
         ufw allow $PORT/tcp
         ufw allow $PORT/udp
     done
+
+    echo "✅ Essential ports (including 54321) have been allowed."
 
     BLOCKED_IPS=("10.0.0.0/8" "100.64.0.0/10" "172.16.0.0/12" "198.18.0.0/15" "169.254.0.0/16" "141.101.78.0/23" "173.245.48.0/20" "18.208.0.0/16" "200.0.0.0/8" "102.0.0.0/8")
     for IP in "${BLOCKED_IPS[@]}"; do
@@ -93,7 +94,7 @@ allow_port() {
 uninstall_firewall() {
     echo "Removing default Turbo Firewall rules..."
 
-    PORTS=(80 8080 8880 2052 2082 2086 2095 443 8443 2053 2083 2087 2096)
+    PORTS=(80 8080 8880 2052 2082 2086 2095 443 8443 2053 2083 2087 2096 54321)
     for PORT in "${PORTS[@]}"; do
         ufw delete allow $PORT/tcp
         ufw delete allow $PORT/udp
@@ -124,13 +125,48 @@ status() {
     iptables -L -v -n
 }
 
+change_ssh_port() {
+    echo "🔹 Change SSH Port"
+    read -p "Enter new SSH port: " NEW_SSH_PORT
+
+    if [[ ! $NEW_SSH_PORT =~ ^[0-9]+$ ]] || ((NEW_SSH_PORT < 1 || NEW_SSH_PORT > 65535)); then
+        echo "⚠️ Invalid port number! Please enter a number between 1-65535."
+        return
+    fi
+
+    CURRENT_SSH_PORT=$(grep "^Port" /etc/ssh/sshd_config | awk '{print $2}')
+
+    if [[ -z "$CURRENT_SSH_PORT" ]]; then
+        echo "⚠️ Could not detect current SSH port, using default 22."
+        CURRENT_SSH_PORT=22
+    fi
+
+    echo "🔹 Current SSH Port: $CURRENT_SSH_PORT"
+    echo "🔹 Updating SSH port to: $NEW_SSH_PORT"
+
+    sed -i "s/^#*Port [0-9]\+/Port $NEW_SSH_PORT/" /etc/ssh/sshd_config
+
+    ufw delete allow $CURRENT_SSH_PORT/tcp
+    echo "🚫 Removed old SSH port $CURRENT_SSH_PORT from UFW."
+
+    ufw allow $NEW_SSH_PORT/tcp
+    echo "✅ New SSH port $NEW_SSH_PORT is now allowed in UFW."
+
+    sudo service sshd restart
+    sudo systemctl restart ssh
+
+    echo "✅ SSH service restarted successfully!"
+    echo "⚠️ If you get disconnected, remember to connect using port $NEW_SSH_PORT."
+}
+
 show_menu() {
     show_logo
     echo "1) Install Turbo Firewall"
     echo "2) Allow Port"
     echo "3) Uninstall Turbo Firewall (Remove all rules)"
     echo "4) View Status (Blocked Packets)"
-    echo "5) Exit"
+    echo "5) Change SSH Port"
+    echo "6) Exit"
     echo ""
     read -p "Choose an option: " OPTION
 
@@ -139,8 +175,9 @@ show_menu() {
         2) allow_port ;;
         3) uninstall_firewall ;;
         4) status ;;
-        5) exit 0 ;;
-        *) echo "Invalid option. Please choose between 1-5."; sleep 2; show_menu ;;
+        5) change_ssh_port ;;
+        6) exit 0 ;;
+        *) echo "Invalid option. Please choose between 1-6."; sleep 2; show_menu ;;
     esac
 }
 
