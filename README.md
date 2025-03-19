@@ -6,6 +6,8 @@
 
 برای حذف تمام قوانین فایروال اسکریپت، کافی است گزینه ۳ (Uninstall) را انتخاب کنید تا تمامی تنظیمات فایروال به حالت اولیه بازگردد.
 
+با استفاده از گزینه 5 میتوانید به صورت ساده پورت ssh را تغییر دهید و پورت مورد نظر شما به صورت خودکار در فایروال باز خواهد شد
+
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/mansnetworker/Turbo-Firewall/main/turbofirewall.sh)
