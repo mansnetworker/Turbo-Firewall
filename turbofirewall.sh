@@ -62,6 +62,8 @@ install_firewall() {
         iptables -A FORWARD -p udp --dport $PORT -j DROP
     done
 
+    ufw route allow in on any out on any
+
     echo "🔹 Saving iptables rules..."
     iptables-save > /etc/iptables/rules.v4
     iptables-save > /etc/iptables/rules.v6
