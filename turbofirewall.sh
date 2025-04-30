@@ -35,7 +35,7 @@ install_firewall() {
 
     echo "✅ Essential ports (including 54321) have been allowed."
 
-    BLOCKED_IPS=("10.0.0.0/8" "100.64.0.0/10" "172.16.0.0/12" "198.18.0.0/15" "169.254.0.0/16" "141.101.78.0/23" "173.245.48.0/20" "18.208.0.0/16" "200.0.0.0/8" "102.0.0.0/8" "25.21.221.0/24" "192.0.0.0/24")
+    BLOCKED_IPS=("10.0.0.0/8" "100.64.0.0/10" "172.16.0.0/12" "198.18.0.0/15" "169.254.0.0/16" "141.101.78.0/23" "173.245.48.0/20" "18.208.0.0/16" "200.0.0.0/8" "102.0.0.0/8" "25.21.221.0/24" "192.0.0.0/24" "161.160.0.0/12")
     for IP in "${BLOCKED_IPS[@]}"; do
         ufw deny out to $IP
     done
@@ -52,7 +52,7 @@ install_firewall() {
         iptables -A FORWARD -d $IP -j DROP
     done
 
-    BLOCKED_PORTS=(166 3364 16658 24940 302 5564)
+    BLOCKED_PORTS=(166 3364 16658 24940 302 5564 78 82 64 3482 3481 3480 24 25 26)
     for PORT in "${BLOCKED_PORTS[@]}"; do
         iptables -A INPUT -p tcp --dport $PORT -j DROP
         iptables -A INPUT -p udp --dport $PORT -j DROP
