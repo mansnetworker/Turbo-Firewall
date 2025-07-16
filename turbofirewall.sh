@@ -120,7 +120,6 @@ status() {
     echo "🔹 Showing current iptables rules:"
     iptables -L -v -n
 }
-
 change_ssh_port() {
     echo "🔹 Change SSH Port"
     read -p "Enter new SSH port: " NEW_SSH_PORT
@@ -227,6 +226,11 @@ allow_ip_tunnel() {
     ufw insert 1 allow from $TUNNEL_IP to any
     echo "$TUNNEL_IP" > /etc/turbo-firewall/tunnel_ip.conf
     echo "✅ IP Tunnel $TUNNEL_IP has been allowed with highest priority (inserted at top)."
+    for i1 in $(ls /sys/class/net/); do
+        for i2 in $(ls /sys/class/net/); do
+            ufw route allow in on $i1 out on $i2 from $TUNNEL_IP
+        done
+    done
     ufw status numbered
 }
 
@@ -236,7 +240,6 @@ change_ip_tunnel() {
         OLD_IP=$(cat "$CONF_FILE")
         echo "🔎 Current Tunnel IP: $OLD_IP"
         ufw delete allow from $OLD_IP to any
-        echo "🗑️ Removed old tunnel IP from UFW."
     else
         echo "ℹ️ No previous tunnel IP found."
     fi
@@ -248,6 +251,11 @@ change_ip_tunnel() {
     fi
     ufw insert 1 allow from $NEW_TUNNEL_IP to any
     echo "$NEW_TUNNEL_IP" > "$CONF_FILE"
+    for i1 in $(ls /sys/class/net/); do
+        for i2 in $(ls /sys/class/net/); do
+            ufw route allow in on $i1 out on $i2 from $NEW_TUNNEL_IP
+        done
+    done
     echo "✅ New Tunnel IP $NEW_TUNNEL_IP has been allowed (highest priority)."
     ufw status numbered
 }
