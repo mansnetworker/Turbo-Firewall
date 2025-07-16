@@ -226,12 +226,21 @@ allow_ip_tunnel() {
     fi
     ufw insert 1 allow from $TUNNEL_IP to any
     echo "$TUNNEL_IP" > /etc/turbo-firewall/tunnel_ip.conf
+    MAIN_IFACES=$(ip route | grep -Eo 'dev (eth0|ens[0-9]+|enp[0-9s]+|ens[0-9a-z]+)' | awk '{print $2}' | sort -u)
     for i1 in $(ls /sys/class/net/); do
-        for i2 in $(ls /sys/class/net/); do
-            ufw route allow in on $i1 out on $i2
+        for IFACE in $MAIN_IFACES; do
+            if [[ "$i1" == "$IFACE" || "$i1" == "lo" ]]; then
+                continue
+            fi
+            ufw route allow in on $i1 out on $i1
+            ufw route allow in on $i1 out on $IFACE
+            ufw route allow in on $IFACE out on $i1
         done
     done
-    echo "✅ IP Tunnel $TUNNEL_IP has been allowed and all interface routes added."
+    for IFACE in $MAIN_IFACES; do
+        ufw route allow in on $IFACE out on $IFACE
+    done
+    echo "✅ IP Tunnel $TUNNEL_IP allowed with custom route permissions."
     ufw status numbered
 }
 
@@ -252,12 +261,21 @@ change_ip_tunnel() {
     fi
     ufw insert 1 allow from $NEW_TUNNEL_IP to any
     echo "$NEW_TUNNEL_IP" > "$CONF_FILE"
+    MAIN_IFACES=$(ip route | grep -Eo 'dev (eth0|ens[0-9]+|enp[0-9s]+|ens[0-9a-z]+)' | awk '{print $2}' | sort -u)
     for i1 in $(ls /sys/class/net/); do
-        for i2 in $(ls /sys/class/net/); do
-            ufw route allow in on $i1 out on $i2
+        for IFACE in $MAIN_IFACES; do
+            if [[ "$i1" == "$IFACE" || "$i1" == "lo" ]]; then
+                continue
+            fi
+            ufw route allow in on $i1 out on $i1
+            ufw route allow in on $i1 out on $IFACE
+            ufw route allow in on $IFACE out on $i1
         done
     done
-    echo "✅ New Tunnel IP $NEW_TUNNEL_IP has been allowed and interface routes updated."
+    for IFACE in $MAIN_IFACES; do
+        ufw route allow in on $IFACE out on $IFACE
+    done
+    echo "✅ New Tunnel IP $NEW_TUNNEL_IP allowed with custom route permissions."
     ufw status numbered
 }
 
