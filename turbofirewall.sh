@@ -161,6 +161,70 @@ change_ssh_port() {
     echo "⚠️ If you get disconnected, remember to connect using port $NEW_SSH_PORT."
 }
 
+ban_attack() {
+    echo "🔐 Enabling SSH brute-force protection..."
+    SSH_PORT=$(grep -E "^Port " /etc/ssh/sshd_config | awk '{print $2}')
+    if [[ -z "$SSH_PORT" ]]; then
+        SSH_PORT=22
+        echo "⚠️ Could not detect custom SSH port. Using default: $SSH_PORT"
+    else
+        echo "✅ Detected SSH port: $SSH_PORT"
+    fi
+    if ! command -v fail2ban-server &> /dev/null; then
+        echo "📦 Installing fail2ban..."
+        apt update && apt install fail2ban -y
+    else
+        echo "✅ fail2ban already installed."
+    fi
+    cat > /etc/fail2ban/jail.d/ssh-protect.local <<EOF
+[sshd]
+enabled = true
+port = $SSH_PORT
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = 5
+findtime = 600
+bantime = 600
+EOF
+    systemctl restart fail2ban
+    systemctl enable fail2ban
+    echo "✅ SSH protection is now active with fail2ban!"
+    echo "🔒 Max 5 login attempts allowed in 10 minutes, or IP will be banned for 10 minutes."
+}
+
+disable_ban_attack() {
+    echo "🚫 Disabling SSH brute-force protection..."
+    if systemctl is-active --quiet fail2ban; then
+        systemctl stop fail2ban
+        echo "⛔ fail2ban service stopped."
+    else
+        echo "ℹ️ fail2ban service is already stopped."
+    fi
+    if [ -f /etc/fail2ban/jail.d/ssh-protect.local ]; then
+        rm -f /etc/fail2ban/jail.d/ssh-protect.local
+        echo "🗑️ Removed custom jail config for SSH."
+    fi
+    systemctl disable fail2ban 2>/dev/null
+    echo "✅ Ban Attack protection disabled successfully!"
+}
+
+status_ban_attack() {
+    echo "📊 Checking fail2ban SSH protection status..."
+    if ! systemctl is-active --quiet fail2ban; then
+        echo "⚠️ fail2ban is not running."
+        return
+    fi
+    if [ ! -f /etc/fail2ban/jail.d/ssh-protect.local ]; then
+        echo "ℹ️ SSH protection jail not configured."
+        return
+    fi
+    echo "🔎 fail2ban status:"
+    fail2ban-client status sshd
+    echo ""
+    echo "🛑 Banned IPs (if any):"
+    fail2ban-client status sshd | grep 'Banned IP list' | cut -d':' -f2
+}
+
 show_menu() {
     show_logo
     echo "1) Install Turbo Firewall"
@@ -168,7 +232,10 @@ show_menu() {
     echo "3) Uninstall Turbo Firewall (Remove all rules)"
     echo "4) View Status (Blocked Packets)"
     echo "5) Change SSH Port"
-    echo "6) Exit"
+    echo "6) Ban Attack (Auto SSH Protection)"
+    echo "7) Disable Ban Attack"
+    echo "8) Status Ban Attack"
+    echo "9) Exit"
     echo ""
     read -p "Choose an option: " OPTION
 
@@ -178,8 +245,11 @@ show_menu() {
         3) uninstall_firewall ;;
         4) status ;;
         5) change_ssh_port ;;
-        6) exit 0 ;;
-        *) echo "Invalid option. Please choose between 1-6."; sleep 2; show_menu ;;
+        6) ban_attack ;;
+        7) disable_ban_attack ;;
+        8) status_ban_attack ;;
+        9) exit 0 ;;
+        *) echo "Invalid option. Please choose between 1-9."; sleep 2; show_menu ;;
     esac
 }
 
