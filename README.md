@@ -12,6 +12,8 @@
 
 نکته مهم برای کسانی ک تانل دارند، اگر از تانل استفاده میکنند یک گزینه اضاف شده به اسم Allow IP Tunnel که میتوانید ایپی تانل خود را اجازه دسترسی بدهید
 
+اگر تانل هاتون را عوض کردید مجدد گزینه Allow IP Tunnel را بزنید تا اسکریپت تانل جدید شما را بشناسد و اجزه دسترسی بدهد
+
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/mansnetworker/Turbo-Firewall/main/turbofirewall.sh)
