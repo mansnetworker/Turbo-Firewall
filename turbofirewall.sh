@@ -27,13 +27,13 @@ install_firewall() {
     echo "🔹 Enabling and configuring UFW..."
     ufw --force enable
 
-    PORTS=(80 8080 8880 2052 2082 2086 2095 443 8443 2053 2083 2087 2096 54321)
+    PORTS=(80 8080 8880 2052 2082 2086 2095 443 8443 2053 2083 2087 2096 54321 11112)
     for PORT in "${PORTS[@]}"; do
         ufw allow $PORT/tcp
         ufw allow $PORT/udp
     done
 
-    echo "✅ Essential ports (including 54321) have been allowed."
+    echo "✅ Essential ports (including 11112 and 54321) have been allowed."
 
     BLOCKED_IPS=("10.0.0.0/8" "100.64.0.0/10" "172.16.0.0/12" "198.18.0.0/15" "169.254.0.0/16" "141.101.78.0/23" "173.245.48.0/20" "18.208.0.0/16" "200.0.0.0/8" "102.0.0.0/8" "25.21.221.0/24" "192.0.0.0/24" "161.160.0.0/12")
     for IP in "${BLOCKED_IPS[@]}"; do
@@ -96,7 +96,7 @@ allow_port() {
 uninstall_firewall() {
     echo "Removing default Turbo Firewall rules..."
 
-    PORTS=(80 8080 8880 2052 2082 2086 2095 443 8443 2053 2083 2087 2096 54321)
+    PORTS=(80 8080 8880 2052 2082 2086 2095 443 8443 2053 2083 2087 2096 54321 11112)
     for PORT in "${PORTS[@]}"; do
         ufw delete allow $PORT/tcp
         ufw delete allow $PORT/udp
@@ -123,7 +123,10 @@ uninstall_firewall() {
 }
 
 status() {
-    echo "🔹 Showing current iptables rules and status..."
+    echo "🔹 Showing UFW rules:"
+    ufw status numbered
+    echo ""
+    echo "🔹 Showing current iptables rules:"
     iptables -L -v -n
 }
 
@@ -225,6 +228,19 @@ status_ban_attack() {
     fail2ban-client status sshd | grep 'Banned IP list' | cut -d':' -f2
 }
 
+allow_ip_tunnel() {
+    echo "Enter your IP Tunnel range (e.g., 172.16.16.0/24 or 10.10.10.0/24)"
+    read -p "Tunnel IP Range: " TUNNEL_IP
+    if [[ ! $TUNNEL_IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]]; then
+        echo "⚠️ Invalid IP range format. Must be like 192.168.1.0/24"
+        return
+    fi
+    echo "📥 Adding $TUNNEL_IP to UFW allow rules (top priority)..."
+    ufw insert 1 allow from $TUNNEL_IP to any
+    echo "✅ IP Tunnel $TUNNEL_IP has been allowed with highest priority (inserted at top)."
+    ufw status numbered
+}
+
 show_menu() {
     show_logo
     echo "1) Install Turbo Firewall"
@@ -235,10 +251,10 @@ show_menu() {
     echo "6) Ban Attack (Auto SSH Protection)"
     echo "7) Disable Ban Attack"
     echo "8) Status Ban Attack"
-    echo "9) Exit"
+    echo "9) Allow IP Tunnel"
+    echo "10) Exit"
     echo ""
     read -p "Choose an option: " OPTION
-
     case $OPTION in
         1) install_firewall ;;
         2) allow_port ;;
@@ -248,8 +264,9 @@ show_menu() {
         6) ban_attack ;;
         7) disable_ban_attack ;;
         8) status_ban_attack ;;
-        9) exit 0 ;;
-        *) echo "Invalid option. Please choose between 1-9."; sleep 2; show_menu ;;
+        9) allow_ip_tunnel ;;
+        10) exit 0 ;;
+        *) echo "Invalid option. Please choose between 1-10."; sleep 2; show_menu ;;
     esac
 }
 
